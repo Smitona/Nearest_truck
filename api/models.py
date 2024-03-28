@@ -1,8 +1,6 @@
-import re
-from django.core.validators import (MaxValueValidator, MinValueValidator,
-                                    RegexValidator)
+import random
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.core.exceptions import ValidationError
 
 from api.validators import PlateAlphaEnd, PlateNumber
 
@@ -19,10 +17,15 @@ class Location(models.Model):
     )
     zip = models.PositiveIntegerField(
         max_length=5,
-        unique=True
+        unique=True,
     )
     latitude = models.FloatField()
     longitude = models.FloatField()
+
+    @classmethod
+    def get_zip():
+        max_pk = Location.objects.latest('pk').pk
+        return random.randint(1, max_pk)
 
     class Meta:
         verbose_name = 'Location'
@@ -43,18 +46,22 @@ class Truck(models.Model):
         unique=True,
         validators=[
             PlateAlphaEnd, PlateNumber,
-        ]
+        ],
     )
     location = models.ForeignKey(
         Location,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='current_loc',
+        blank=False,
+        to_field='zip',
+        default=Location.get_zip,
     )
     cargo_capacity = models.PositiveSmallIntegerField(
         default=20,
         validators=[
             MinValueValidator(1),
             MaxValueValidator(100)
-        ]
+        ],
     )
 
     class Meta:
@@ -75,13 +82,15 @@ class Cargo(models.Model):
         Location,
         on_delete=models.CASCADE,
         related_name='pickup',
-        blank=False
+        blank=False,
+        to_field='zip',
     )
     delivery_loc = models.ForeignKey(
         Location,
         on_delete=models.CASCADE,
         related_name='deliver',
-        blank=False
+        blank=False,
+        to_field='zip',
     )
     weight = models.PositiveSmallIntegerField(
         default=20,
@@ -89,7 +98,7 @@ class Cargo(models.Model):
         validators=[
             MinValueValidator(1),
             MaxValueValidator(100)
-        ]
+        ],
     )
     description = models.TextField(
         blank=False
