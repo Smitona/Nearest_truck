@@ -2,7 +2,7 @@ import random
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from api.validators import PlateAlphaEnd, PlateNumber
+from api.validators import validate_plate_alpha_end, validate_plate_number
 
 
 class Location(models.Model):
@@ -15,7 +15,7 @@ class Location(models.Model):
         max_length=200,
         blank=False,
     )
-    zip = models.PositiveIntegerField(
+    zip = models.CharField(
         max_length=5,
         unique=True,
     )
@@ -23,9 +23,11 @@ class Location(models.Model):
     longitude = models.FloatField()
 
     @classmethod
-    def get_zip():
+    def get_location(obj):
         max_pk = Location.objects.latest('pk').pk
-        return random.randint(1, max_pk)
+        location_pk = random.randint(1, max_pk)
+        location = Location.objects.get(pk=location_pk)
+        return location
 
     class Meta:
         verbose_name = 'Location'
@@ -42,22 +44,24 @@ class Truck(models.Model):
     """Model for trucks."""
     plate_number = models.CharField(
         max_length=5,
-        blank=False,
         unique=True,
+        null=False,
         validators=[
-            PlateAlphaEnd, PlateNumber,
+            validate_plate_alpha_end,
+            validate_plate_number
         ],
     )
     location = models.ForeignKey(
         Location,
         on_delete=models.CASCADE,
         related_name='current_loc',
-        blank=False,
-        to_field='zip',
-        default=Location.get_zip,
+        blank=True,
+        null=True,
+        default=Location.get_location,
     )
     cargo_capacity = models.PositiveSmallIntegerField(
         default=20,
+        null=False,
         validators=[
             MinValueValidator(1),
             MaxValueValidator(100)
@@ -83,14 +87,12 @@ class Cargo(models.Model):
         on_delete=models.CASCADE,
         related_name='pickup',
         blank=False,
-        to_field='zip',
     )
     delivery_loc = models.ForeignKey(
         Location,
         on_delete=models.CASCADE,
         related_name='deliver',
         blank=False,
-        to_field='zip',
     )
     weight = models.PositiveSmallIntegerField(
         default=20,

@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
     def import_csv_data(self, csv_path, filename, import_func):
         file_path = Path(csv_path) / filename
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, 'r', newline='', encoding='utf-8') as file:
             csv_data = csv.DictReader(file)
             import_func(csv_data)
 

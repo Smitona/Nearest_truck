@@ -1,14 +1,19 @@
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+
 from rest_framework import serializers
 
 from api.models import Location, Truck, Cargo
+from api.validators import validate_plate_number, validate_plate_alpha_end
+from api.utils import get_trucks_distance, get_trucks_within_450
 
 
 class LocationSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Location
         fields = (
-            'zip'
+            'zip',
             'city',
             'state',
             'latitude',
@@ -17,7 +22,14 @@ class LocationSerializer(serializers.ModelSerializer):
 
 
 class TruckSerializer(serializers.ModelSerializer):
-    location = LocationSerializer(many=False, read_only=True)
+    location = LocationSerializer(many=False, required=False)
+    plate_number = serializers.CharField(
+        max_length=5, required=True,
+        validators=[
+            validate_plate_number, validate_plate_alpha_end
+        ]
+    )
+    cargo_capacity = serializers.CharField(required=True)
 
     class Meta:
         model = Truck
@@ -27,29 +39,43 @@ class TruckSerializer(serializers.ModelSerializer):
             'cargo_capacity',
         )
 
+    def validate(self, data):
+        if not validate_plate_number(data['plate_number']):
+            raise serializers.ValidationError(
+                'Plate starts with number from 1000 to 9999 before the letter.'
+            )
+        if not validate_plate_alpha_end(data['plate_number']):
+            raise serializers.ValidationError(
+                'Plate must have an uppercase letter at the end.'
+            )
+
+        return data
+
+
     @transaction.atomic
     def update(self, instance, validated_data):
-        instance.location = 'description', instance.description
+        instance.location = validated_data.get('location', instance.location)
         return super().update(instance, validated_data)
 
 
 class CargoSerializer(serializers.ModelSerializer):
-    description = serializers.SerializerMethodField()
-    pickup_loc = LocationSerializer(many=False, read_only=True)
-    delivery_loc = LocationSerializer(many=False, read_only=True)
+    description = serializers.CharField(max_length=200)
+    pickup_loc = serializers.CharField(max_length=5)
+    delivery_loc = serializers.CharField(max_length=5)
+    trucks = serializers.SerializerMethodField()
+
+    def get_trucks(self, obj):
+        return get_trucks_distance(obj)
 
     class Meta:
         model = Cargo
         fields = (
             'description',
-            'weight'
+            'weight',
             'pickup_loc',
             'delivery_loc',
+            'trucks'
         )
-
-    @staticmethod
-    def get_description(obj):
-        return obj.formatted_text()
 
     @transaction.atomic
     def update(self, instance, validated_data):
@@ -61,12 +87,20 @@ class CargoSerializer(serializers.ModelSerializer):
 
 
 class ShortCargoSerializer(serializers.ModelSerializer):
-    trucks_count = serializers.IntegerField(read_only=True)
+    trucks_count = serializers.SerializerMethodField()
+    pickup_loc = LocationSerializer()
+    delivery_loc = LocationSerializer()
 
     class Meta:
         model = Cargo
         fields = (
+            'id',
+            'description',
+            'weight',
             'pickup_loc',
             'delivery_loc',
             'trucks_count'
         )
+
+    def get_trucks_count(self, obj):
+        return get_trucks_within_450(obj)

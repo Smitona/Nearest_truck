@@ -10,5 +10,5 @@ router.register('trucks', TruckViewSet)
 router.register('cargos', CargoViewSet)
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]
