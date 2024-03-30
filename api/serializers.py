@@ -22,7 +22,7 @@ class LocationSerializer(serializers.ModelSerializer):
 
 
 class TruckSerializer(serializers.ModelSerializer):
-    location = LocationSerializer(many=False, required=False)
+    location = serializers.CharField()
     plate_number = serializers.CharField(
         max_length=5, required=True,
         validators=[
@@ -50,12 +50,6 @@ class TruckSerializer(serializers.ModelSerializer):
             )
 
         return data
-
-
-    @transaction.atomic
-    def update(self, instance, validated_data):
-        instance.location = validated_data.get('location', instance.location)
-        return super().update(instance, validated_data)
 
 
 class CargoSerializer(serializers.ModelSerializer):

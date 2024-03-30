@@ -1,10 +1,7 @@
 import random
-from django.db.models import Count
 
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-
-from geopy.distance import geodesic
 
 from api.models import Location, Truck, Cargo
 from api.serializers import (CargoSerializer, TruckSerializer,
@@ -26,6 +23,13 @@ class TruckViewSet(viewsets.ModelViewSet):
            location=self.get_location(),
         )
 
+    def perform_update(self, serializer):
+        location_zip = serializer.validated_data.get('location')
+        location_obj = Location.objects.get(zip=location_zip)
+        serializer.save(
+            location=location_obj
+        )
+
 
 class CargoViewSet(viewsets.ModelViewSet):
     queryset = Cargo.objects.all()
@@ -36,29 +40,19 @@ class CargoViewSet(viewsets.ModelViewSet):
             return ShortCargoSerializer
         return CargoSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid()
-
+    def perform_create(self, serializer):
         pickup_loc_zip = serializer.validated_data.get('pickup_loc')
         delivery_loc_zip = serializer.validated_data.get('delivery_loc')
 
         pickup_loc = Location.objects.get(zip=pickup_loc_zip)
         delivery_loc = Location.objects.get(zip=delivery_loc_zip)
 
-        cargo = Cargo.objects.create(
-            description=serializer.validated_data.get('description'),
-            weight=serializer.validated_data.get('weight'),
+        serializer.save(
             pickup_loc=pickup_loc,
             delivery_loc=delivery_loc
         )
 
-        return Response(
-                ShortCargoSerializer(cargo).data,
-                status=status.HTTP_201_CREATED
-            )
-
-    def delete(self, request, pk):
+    def delete(self, pk):
         cargo_exists = Cargo.objects.filter(pk=pk).exists()
 
         if not cargo_exists:
