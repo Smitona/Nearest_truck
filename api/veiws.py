@@ -1,26 +1,20 @@
 import random
 
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 
-from api.models import Location, Truck, Cargo
-from api.serializers import (CargoSerializer, TruckSerializer,
-                             ShortCargoSerializer)
+from api.models import Cargo, Location, Truck
+from api.serializers import (CargoSerializer, ShortCargoSerializer,
+                             TruckSerializer)
 
 
 class TruckViewSet(viewsets.ModelViewSet):
     queryset = Truck.objects.all()
     serializer_class = TruckSerializer
 
-    def get_location(obj):
-        max_pk = Location.objects.latest('pk').pk
-        location_pk = random.randint(1, max_pk)
-        location = Location.objects.get(pk=location_pk)
-        return location
-
     def perform_create(self, serializer):
         serializer.save(
-           location=self.get_location(),
+           location=Location.get_location(),
         )
 
     def perform_update(self, serializer):

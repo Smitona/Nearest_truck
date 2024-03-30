@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from api.models import Location, Truck, Cargo
+from api.models import Cargo, Location, Truck
 
 
 class BaseAdmin(admin.ModelAdmin):

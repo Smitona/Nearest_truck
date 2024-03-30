@@ -1,0 +1,29 @@
+version: '3.3'
+
+volumes:
+  nt_pg_data:
+  static:
+
+services:
+
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - nt_pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    image: smitona/nt_backend:latest
+    restart: always
+    env_file: .env
+    command: >
+      bash -c "python manage.py migrate && python manage.py import_locations && python manage.py create_trucks && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app/
+      - static:/backend_static
+    ports:
+    - "8000:8000"
+    depends_on:
+      - db

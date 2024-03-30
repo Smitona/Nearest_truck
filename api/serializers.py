@@ -1,11 +1,9 @@
 from django.db import transaction
-from django.shortcuts import get_object_or_404
-
 from rest_framework import serializers
 
-from api.models import Location, Truck, Cargo
-from api.validators import validate_plate_number, validate_plate_alpha_end
+from api.models import Cargo, Location, Truck
 from api.utils import get_trucks_distance, get_trucks_within_450
+from api.validators import validate_plate_alpha_end, validate_plate_number
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -34,6 +32,7 @@ class TruckSerializer(serializers.ModelSerializer):
     class Meta:
         model = Truck
         fields = (
+            'id',
             'plate_number',
             'location',
             'cargo_capacity',
@@ -49,6 +48,11 @@ class TruckSerializer(serializers.ModelSerializer):
                 'Plate must have an uppercase letter at the end.'
             )
 
+        return data
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['location'] = LocationSerializer(instance.location).data
         return data
 
 

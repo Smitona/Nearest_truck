@@ -1,7 +1,7 @@
 
 from geopy.distance import geodesic
 
-from api.models import Location, Truck, Cargo
+from api.models import Cargo, Location, Truck
 
 
 def get_trucks_distance(cargo):

@@ -1,8 +1,7 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework import routers
 
-from api.veiws import TruckViewSet, CargoViewSet
-
+from api.veiws import CargoViewSet, TruckViewSet
 
 router = routers.DefaultRouter()
 

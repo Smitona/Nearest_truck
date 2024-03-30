@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+
 from api.models import Location
 
 
@@ -36,12 +37,17 @@ class Command(BaseCommand):
             import_func(csv_data)
 
     def import_locations(self, csv_data):
-        locations = [Location(
-            city=row['city'],
-            state=row['state_name'],
-            zip=row['zip'],
-            latitude=row['lat'],
-            longitude=row['lng'],
-        ) for row in csv_data
-        ]
-        Location.objects.bulk_create(locations)
+        try:
+            if not Location.objects.all().exists():
+
+                locations = [Location(
+                    city=row['city'],
+                    state=row['state_name'],
+                    zip=row['zip'],
+                    latitude=row['lat'],
+                    longitude=row['lng'],
+                ) for row in csv_data
+                ]
+                Location.objects.bulk_create(locations)
+        except ValueError:
+            print('Locations already imported.')
